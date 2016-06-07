@@ -1233,59 +1233,8 @@ void MainWindow::evaluate()
             egbs.applySegmentation( matA, r, th, mcs);
             cv::Mat random_color  = egbs.recolor(false);
 
-
-            cv::Mat gray, src_gray, edge, draw;
-            cv::cvtColor(random_color, src_gray, CV_BGR2GRAY);
-            cv::blur( src_gray, gray, cv::Size(3,3) );
-            cv::Canny( gray, edge, 50, 150, 3, true );
-            cv::Mat contoursInv;
-            cv::threshold(edge,contoursInv,128,255,  cv::THRESH_BINARY_INV);
-
-
-            contoursInv.convertTo(draw, CV_8U);
-
-            cv::Size imageSize = matA.size();
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-
-                    if (draw.at<uchar>(y,x)==0)
-                    {
-                        matA.at<cv::Vec3b>(y, x)[0]=0;
-                        matA.at<cv::Vec3b>(y, x)[1]=0;
-                        matA.at<cv::Vec3b>(y, x)[2]=254;
-
-                    }
-
-
-                }
-            }
-            int v=0;
-            int z=0;
-
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-                    cv::Vec3b pixA = matB.at<cv::Vec3b>(y, x);
-                    if (pixA[0]==0 and pixA[1]==0 and pixA[2]==254)
-                    {
-                        cv::Vec3b pixB = matA.at<cv::Vec3b>(y, x);
-                        if (pixB[0]==0 and pixB[1]==0 and pixB[2]==254)
-                        {
-                            v++;
-                        }
-
-                        z++;
-
-                    }
-
-
-                }
-            }
-
-
-
-            zxc=(v*100)/(double)z;
+            matA = contour(random_color, matA);
+            zxc = deviation(matA, matB);
             if (zxc>max)
             {
                 max=zxc;
@@ -1294,15 +1243,9 @@ void MainWindow::evaluate()
                 image_result.bits();
                 QApplication::processEvents();
                 imageLabelA->set_qimage(image_result);
-
             }
-
-
         }
-
-
         eval->setText(tr("Отклонение = ")+QString::number(100-max));
-
     }
     if (kmean_radio_button->isChecked())
     {
@@ -1313,66 +1256,8 @@ void MainWindow::evaluate()
             int mn = rand()%6+1;
             KMeans kmeans;
             cv::Mat k = kmeans.applySegmentation( matA, mn);
-
-
-
-            cv::Mat gray, src_gray, edge, draw;
-            cv::cvtColor(k, src_gray, CV_BGR2GRAY);
-            cv::blur( src_gray, gray, cv::Size(3,3) );
-            cv::Canny( gray, edge, 50, 150, 3, true );
-            cv::Mat contoursInv;
-            cv::threshold(edge,contoursInv,128,255,  cv::THRESH_BINARY_INV);
-
-
-            contoursInv.convertTo(draw, CV_8U);
-
-            cv::Size imageSize = matA.size();
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-
-                    if (draw.at<uchar>(y,x)==0)
-                    {
-                        matA.at<cv::Vec3b>(y, x)[0]=0;
-                        matA.at<cv::Vec3b>(y, x)[1]=0;
-                        matA.at<cv::Vec3b>(y, x)[2]=254;
-
-                    }
-
-
-                }
-            }
-
-
-
-
-
-            int v=0;
-            int z=0;
-
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-                    cv::Vec3b pixA = matB.at<cv::Vec3b>(y, x);
-                    if (pixA[0]==0 and pixA[1]==0 and pixA[2]==254)
-                    {
-                        cv::Vec3b pixB = matA.at<cv::Vec3b>(y, x);
-                        if (pixB[0]==0 and pixB[1]==0 and pixB[2]==254)
-                        {
-                            v++;
-                        }
-
-                        z++;
-
-                    }
-
-
-                }
-            }
-
-
-
-            zxc=(v*100)/(double)z;
+            matA = contour(k, matA);
+            zxc = deviation(matA, matB);
             if (zxc>max)
             {
                 max=zxc;
@@ -1381,14 +1266,9 @@ void MainWindow::evaluate()
                 image_result.bits();
                 QApplication::processEvents();
                 imageLabelA->set_qimage(image_result);
-
             }
-
-
-
         }
         eval->setText(tr("Отклонение = ")+QString::number(100-max));
-
     }
     if (gmm_radio_button->isChecked())
     {
@@ -1397,66 +1277,10 @@ void MainWindow::evaluate()
             cv::Mat matA= cv::imread(fileNameA.toLatin1().data());
             cv::Mat matB= cv::imread(fileNameB.toLatin1().data());
             int mn = rand()%3+2;
-
             GMM GMM;
             cv::Mat gmm = GMM.applySegmentation( matA, mn);
-
-
-
-            cv::Mat gray,src_gray, edge, draw;
-            cv::cvtColor(gmm, src_gray, CV_BGR2GRAY);
-            cv::blur( src_gray, gray, cv::Size(3,3) );
-            cv::Canny( gray, edge, 50, 150, 3, true );
-            cv::Mat contoursInv;
-            cv::threshold(edge,contoursInv,128,255,  cv::THRESH_BINARY_INV);
-
-
-            contoursInv.convertTo(draw, CV_8U);
-
-            cv::Size imageSize = matA.size();
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-
-                    if (draw.at<uchar>(y,x)==0)
-                    {
-                        matA.at<cv::Vec3b>(y, x)[0]=0;
-                        matA.at<cv::Vec3b>(y, x)[1]=0;
-                        matA.at<cv::Vec3b>(y, x)[2]=254;
-
-                    }
-
-
-                }
-            }
-
-
-            int v=0;
-            int z=0;
-
-
-            for( int y = 0; y < imageSize.height; y++ ) {
-                for( int x = 0; x < imageSize.width; x++ ) {
-                    cv::Vec3b pixA = matB.at<cv::Vec3b>(y, x);
-                    if (pixA[0]==0 and pixA[1]==0 and pixA[2]==254)
-                    {
-                        cv::Vec3b pixB = matA.at<cv::Vec3b>(y, x);
-                        if (pixB[0]==0 and pixB[1]==0 and pixB[2]==254)
-                        {
-                            v++;
-                        }
-
-                        z++;
-
-                    }
-
-
-                }
-            }
-
-
-
-            zxc=(v*100)/(double)z;
+            matA = contour(gmm, matA);
+            zxc = deviation(matA, matB);
             if (zxc>max)
             {
                 max=zxc;
@@ -1465,14 +1289,57 @@ void MainWindow::evaluate()
                 image_result.bits();
                 QApplication::processEvents();
                 imageLabelA->set_qimage(image_result);
-
             }
-
         }
         eval->setText(tr("Отклонение = ")+QString::number(100-max));
-
     }
+}
 
+cv::Mat MainWindow::contour(cv::Mat img1, cv::Mat img2)
+{
+    cv::Mat gray,src_gray, edge, draw;
+    cv::cvtColor(img1, src_gray, CV_BGR2GRAY);
+    cv::blur( src_gray, gray, cv::Size(3,3) );
+    cv::Canny( gray, edge, 50, 150, 3, true );
+    cv::Mat contoursInv;
+    cv::threshold(edge,contoursInv,128,255,  cv::THRESH_BINARY_INV);
+    contoursInv.convertTo(draw, CV_8U);
+    cv::Size imageSize = img2.size();
 
+    for( int y = 0; y < imageSize.height; y++ ) {
+        for( int x = 0; x < imageSize.width; x++ ) {
 
+            if (draw.at<uchar>(y,x)==0)
+            {
+                img2.at<cv::Vec3b>(y, x)[0]=0;
+                img2.at<cv::Vec3b>(y, x)[1]=0;
+                img2.at<cv::Vec3b>(y, x)[2]=254;
+            }
+        }
+    }
+    return img2;
+}
+
+float MainWindow::deviation(Mat img1, Mat img2)
+{
+    cv::Size imageSize = img1.size();
+    int v=0;
+    int z=0;
+    float dev;
+    for( int y = 0; y < imageSize.height; y++ ) {
+        for( int x = 0; x < imageSize.width; x++ ) {
+            cv::Vec3b pixA = img2.at<cv::Vec3b>(y, x);
+            if (pixA[0]==0 and pixA[1]==0 and pixA[2]==254)
+            {
+                cv::Vec3b pixB = img1.at<cv::Vec3b>(y, x);
+                if (pixB[0]==0 and pixB[1]==0 and pixB[2]==254)
+                {
+                    v++;
+                }
+                z++;
+            }
+        }
+    }
+    dev=(v*100)/(double)z;
+    return dev;
 }

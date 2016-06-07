@@ -48,6 +48,7 @@ private slots:
 
 
 private:
+
     PixmapWidget* imageLabel;
     QLabel* iL;
     QScrollArea* scrollArea;
@@ -171,6 +172,8 @@ private:
     QRadioButton *gmm_radio_button;
 
     int model_evaluation;
+    cv::Mat contour(cv::Mat img1, Mat img2);
+    float deviation(cv::Mat img1, Mat img2);
 
 protected:
 
