@@ -304,6 +304,9 @@ MainWindow::MainWindow(QWidget *parent)
     kmean_radio_button = new QRadioButton(tr("K-Mean"));
     gmm_radio_button = new QRadioButton(tr("GMM"));
 
+    Canny_radio_button = new QRadioButton(tr("Детектор границ Canny"));
+    Sobel_radio_button = new QRadioButton(tr("Детектор границ Sobel"));
+
     sample_spin = new QSpinBox;
     sample_spin->setSingleStep(1);
     sample_spin->setMinimum(1);
@@ -314,13 +317,21 @@ MainWindow::MainWindow(QWidget *parent)
     alg1_layout->addWidget(kmean_radio_button);
     alg1_layout->addWidget(gmm_radio_button);
 
+    QHBoxLayout* detect_layout = new QHBoxLayout;
+    detect_layout->addWidget(Canny_radio_button);
+    detect_layout->addWidget(Sobel_radio_button);
+
     QVBoxLayout* alg2_layout = new QVBoxLayout;
     alg2_layout->addLayout(alg1_layout);
     alg2_layout->addWidget(sample_spin);
 
 
+
     QGroupBox* alg_group = new QGroupBox(tr("Сравнение"));
     alg_group->setLayout(alg2_layout);
+
+    QGroupBox* detect_group = new QGroupBox(tr("Границы объектов"));
+    detect_group->setLayout(detect_layout);
 
     QLabel *text_C = new QLabel(this);
     text_C->setAlignment(Qt::AlignCenter);
@@ -329,13 +340,46 @@ MainWindow::MainWindow(QWidget *parent)
     QPushButton* evaluate_button = new QPushButton(tr("Начать"));
     connect(evaluate_button,SIGNAL(clicked()),this,SLOT(evaluate()));
 
-    eval = new QLabel(this);
+    eval1 = new QLabel(this);
+    eval2 = new QLabel(this);
+    eval3 = new QLabel(this);
+    eval11 = new QLabel(this);
+    eval22 = new QLabel(this);
+    eval33 = new QLabel(this);
+    eval11->setText("σ,% EGBIS    = ");
+    eval22->setText("σ,% k-means = ");
+    eval33->setText("σ,% GMM      = ");
+    eval1->setText("100");
+    eval2->setText("100");
+    eval3->setText("100");
+
+    QHBoxLayout* e1_layout = new QHBoxLayout;
+    e1_layout->addWidget(eval11);
+    e1_layout->addWidget(eval1);
+    e1_layout->addStretch(1);
+
+
+    QHBoxLayout* e2_layout = new QHBoxLayout;
+    e2_layout->addWidget(eval22);
+    e2_layout->addWidget(eval2);
+    e2_layout->addStretch(1);
+
+
+    QHBoxLayout* e3_layout = new QHBoxLayout;
+    e3_layout->addWidget(eval33);
+    e3_layout->addWidget(eval3);
+    e3_layout->addStretch(1);
+
+
 
     QVBoxLayout* bottom_layout = new QVBoxLayout;
     bottom_layout->addWidget(text_C);
     bottom_layout->addWidget(alg_group);
+    bottom_layout->addWidget(detect_group);
     bottom_layout->addWidget(evaluate_button);
-    bottom_layout->addWidget(eval);
+    bottom_layout->addLayout(e1_layout);
+    bottom_layout->addLayout(e2_layout);
+    bottom_layout->addLayout(e3_layout);
 
 
     QHBoxLayout* lists_select_layout = new QHBoxLayout;
@@ -1245,7 +1289,10 @@ void MainWindow::evaluate()
                 imageLabelA->set_qimage(image_result);
             }
         }
-        eval->setText(tr("Отклонение = ")+QString::number(100-max));
+        if (eval1->text().toFloat()>(100-max))
+        {
+        eval1->setText(QString::number(100-max));
+        }
     }
     if (kmean_radio_button->isChecked())
     {
@@ -1253,7 +1300,7 @@ void MainWindow::evaluate()
         {
             cv::Mat matA= cv::imread(fileNameA.toLatin1().data());
             cv::Mat matB= cv::imread(fileNameB.toLatin1().data());
-            int mn = rand()%6+1;
+            int mn = rand()%3+2;
             KMeans kmeans;
             cv::Mat k = kmeans.applySegmentation( matA, mn);
             matA = contour(k, matA);
@@ -1268,7 +1315,10 @@ void MainWindow::evaluate()
                 imageLabelA->set_qimage(image_result);
             }
         }
-        eval->setText(tr("Отклонение = ")+QString::number(100-max));
+        if (eval2->text().toFloat()>(100-max))
+        {
+        eval2->setText(QString::number(100-max));
+        }
     }
     if (gmm_radio_button->isChecked())
     {
@@ -1291,16 +1341,22 @@ void MainWindow::evaluate()
                 imageLabelA->set_qimage(image_result);
             }
         }
-        eval->setText(tr("Отклонение = ")+QString::number(100-max));
+        if (eval3->text().toFloat()>(100-max))
+        {
+        eval3->setText(QString::number(100-max));
+        }
     }
 }
 
 cv::Mat MainWindow::contour(cv::Mat img1, cv::Mat img2)
 {
-    cv::Mat gray,src_gray, edge, draw;
+    cv::Mat gray,src_gray, edge, draw,dst;
     cv::cvtColor(img1, src_gray, CV_BGR2GRAY);
-    cv::blur( src_gray, gray, cv::Size(3,3) );
-    cv::Canny( gray, edge, 50, 150, 3, true );
+    float sigma=1.4;
+    if (Canny_radio_button->isChecked())
+    {
+    //cv::blur( src_gray, gray, cv::Size(3,3), sigma );
+    cv::Canny( src_gray, edge, 50, 150, 3, true );
     cv::Mat contoursInv;
     cv::threshold(edge,contoursInv,128,255,  cv::THRESH_BINARY_INV);
     contoursInv.convertTo(draw, CV_8U);
@@ -1317,26 +1373,105 @@ cv::Mat MainWindow::contour(cv::Mat img1, cv::Mat img2)
             }
         }
     }
+    }
+    //
+
+
+    if (Sobel_radio_button->isChecked())
+    {
+    int gx, gy, sum;
+
+      dst = src_gray.clone();
+
+
+        for(int y = 0; y < src_gray.rows; y++)
+            for(int x = 0; x < src_gray.cols; x++)
+                dst.at<uchar>(y,x) = 0.0;
+
+        for(int y = 1; y < src_gray.rows - 1; y++){
+            for(int x = 1; x < src_gray.cols - 1; x++){
+                gx = xGradient(src_gray, x, y);
+                gy = yGradient(src_gray, x, y);
+                sum = abs(gx) + abs(gy);
+                sum = sum > 255 ? 255:sum;
+                sum = sum < 0 ? 0 : sum;
+                dst.at<uchar>(y,x) = sum;
+            }
+        }
+        cv::Mat contoursInv;
+        cv::threshold(dst,contoursInv,128,255,  cv::THRESH_BINARY_INV);
+        contoursInv.convertTo(draw, CV_8U);
+        cv::Size imageSize = img2.size();
+        for( int y = 0; y < imageSize.height; y++ ) {
+            for( int x = 0; x < imageSize.width; x++ ) {
+
+                if (draw.at<uchar>(y,x)==0)
+                {
+                    img2.at<cv::Vec3b>(y, x)[0]=0;
+                    img2.at<cv::Vec3b>(y, x)[1]=0;
+                    img2.at<cv::Vec3b>(y, x)[2]=254;
+                }
+            }
+        }
+
+    }
+
     return img2;
 }
 
 float MainWindow::deviation(Mat img1, Mat img2)
 {
     cv::Size imageSize = img1.size();
+    cv::Mat test = img1.clone();
     int v=0;
+    int v1=0;
+    int z1=0;
     int z=0;
     float dev;
+    float accur;
     for( int y = 0; y < imageSize.height; y++ ) {
         for( int x = 0; x < imageSize.width; x++ ) {
             cv::Vec3b pixA = img2.at<cv::Vec3b>(y, x);
             if (pixA[0]==0 and pixA[1]==0 and pixA[2]==254)
             {
-                cv::Vec3b pixB = img1.at<cv::Vec3b>(y, x);
+                z++;
+                cv::Vec3b pixB = test.at<cv::Vec3b>(y, x);
                 if (pixB[0]==0 and pixB[1]==0 and pixB[2]==254)
                 {
                     v++;
                 }
-                z++;
+                else if (x>0 and test.at<cv::Vec3b>(y, x-1)[0]==0 and test.at<cv::Vec3b>(y, x-1)[1]==0 and test.at<cv::Vec3b>(y, x-1)[2]==254)
+                { //1
+                    v++;
+                }
+                else if (x>0 and y>0 and test.at<cv::Vec3b>(y-1, x-1)[0]==0 and test.at<cv::Vec3b>(y-1, x-1)[1]==0 and test.at<cv::Vec3b>(y-1, x-1)[2]==254)
+                { //2
+                    v++;
+                }
+                else if (y<imageSize.height-1 and x>0 and test.at<cv::Vec3b>(y+1, x-1)[0]==0 and test.at<cv::Vec3b>(y+1, x+1)[1]==0 and test.at<cv::Vec3b>(y+1, x-1)[2]==254)
+                { //8
+                    v++;
+                }
+                else if (y>0 and test.at<cv::Vec3b>(y-1, x)[0]==0 and test.at<cv::Vec3b>(y-1, x)[1]==0 and test.at<cv::Vec3b>(y-1, x)[2]==254)
+                { //3
+                    v++;
+                }
+                else if (y<imageSize.height-1 and test.at<cv::Vec3b>(y+1, x)[0]==0 and test.at<cv::Vec3b>(y+1, x)[1]==0 and test.at<cv::Vec3b>(y+1, x)[2]==254)
+                { //7
+                    v++;
+                }
+                else if (y<imageSize.height-1 and x<imageSize.width-1 and test.at<cv::Vec3b>(y+1, x+1)[0]==0 and test.at<cv::Vec3b>(y+1, x+1)[1]==0 and test.at<cv::Vec3b>(y+1, x+1)[2]==254)
+                { //4
+                    v++;
+                }
+                else if (x<imageSize.width-1 and test.at<cv::Vec3b>(y, x+1)[0]==0 and test.at<cv::Vec3b>(y, x+1)[1]==0 and test.at<cv::Vec3b>(y, x+1)[2]==254)
+                { //5
+                    v++;
+                }
+                else if (y<imageSize.height-1 and x<imageSize.width-1 and test.at<cv::Vec3b>(y+1, x+1)[0]==0 and test.at<cv::Vec3b>(y+1, x+1)[1]==0 and test.at<cv::Vec3b>(y+1, x+1)[2]==254)
+                { //6
+                    v++;
+                }
             }
         }
     }

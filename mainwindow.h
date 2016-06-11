@@ -157,7 +157,12 @@ private:
     QLabel* label_name2;
     QLabel* text_A;
     QLabel* text_B;
-    QLabel* eval;
+    QLabel* eval1;
+    QLabel* eval2;
+    QLabel* eval3;
+    QLabel* eval11;
+    QLabel* eval22;
+    QLabel* eval33;
     QImage image1;
     QImage image2;
     int imgA_width;
@@ -171,9 +176,36 @@ private:
     QRadioButton *kmean_radio_button;
     QRadioButton *gmm_radio_button;
 
+    QRadioButton *Canny_radio_button;
+    QRadioButton *Sobel_radio_button;
+
     int model_evaluation;
     cv::Mat contour(cv::Mat img1, Mat img2);
     float deviation(cv::Mat img1, Mat img2);
+    float deviation2(cv::Mat img1, Mat img2);
+
+    int xGradient(cv::Mat image, int x, int y)
+    {
+        return image.at<uchar>(y-1, x-1) +
+                    2*image.at<uchar>(y, x-1) +
+                     image.at<uchar>(y+1, x-1) -
+                      image.at<uchar>(y-1, x+1) -
+                       2*image.at<uchar>(y, x+1) -
+                        image.at<uchar>(y+1, x+1);
+    }
+
+
+
+    int yGradient(cv::Mat image, int x, int y)
+    {
+        return image.at<uchar>(y-1, x-1) +
+                    2*image.at<uchar>(y-1, x) +
+                     image.at<uchar>(y-1, x+1) -
+                      image.at<uchar>(y+1, x-1) -
+                       2*image.at<uchar>(y+1, x) -
+                        image.at<uchar>(y+1, x+1);
+    }
+
 
 protected:
 

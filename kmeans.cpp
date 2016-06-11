@@ -11,27 +11,122 @@ cv::Mat KMeans::applySegmentation(cv::Mat& image, int k)
     this->imageSize = image.size();
     NUM_CLUSTERS=k;
     bool finish = false;
-    int iter;
+//    int iter;
+//    float Ra, Rb;
+//    std::vector<float> pt;
 
-   // image.convertTo(this->image, CV_8UC3);
- //   int size = imageSize.height*imageSize.width;
+//   // image.convertTo(this->image, CV_8UC3);
+// //   int size = imageSize.height*imageSize.width;
+
+//    cv::Mat img2;
+//    image.convertTo( img2, CV_32FC1 );
+
+//    //std::srand(std::time(NULL));
+
+
+//    for (int i=0; i<NUM_CLUSTERS; i++)
+//    {
+//        Cluster *cluster = new Cluster(i);
+//        cv::Vec3f centroid;
+//        centroid[0]=rand()%255;
+//        centroid[1]=rand()%255;
+//        centroid[2]=rand()%255;
+//        cluster->setCentroid(centroid);
+//        clusters.push_back(*cluster);
+//        delete cluster;
+//    }
+
+
+    float Ra, Rb;
+    Ra=1.2;
+    Rb=1.5;
+    std::vector<float> pt;
+    float mountin=0;
 
     cv::Mat img2;
     image.convertTo( img2, CV_32FC1 );
 
     std::srand(std::time(NULL));
+    int RED=255;
+    int GREEN=255;
+    int BLOO=255;
 
-    for (int i=0; i<NUM_CLUSTERS; i++)
-    {
-        Cluster *cluster = new Cluster(i);
-        cv::Vec3f centroid;
-        centroid[0]=rand()%255;
-        centroid[1]=rand()%255;
-        centroid[2]=rand()%255;
-        cluster->setCentroid(centroid);
-        clusters.push_back(*cluster);
-        delete cluster;
+    for(int b =0; b<RED; b+=50) {
+        for(int g=0; g<GREEN; g+=50) {
+            for(int r=0; r<BLOO; r+=50) {
+                mountin=0;
+                for( int z = 0; z < imageSize.height; z++ ) {
+                    for( int c = 0; c < imageSize.width; c++ ) {
+                        cv::Vec3f pix2 = img2.at<cv::Vec3f>(z, c);
+                        float zzz = -(sqrt(pow(pix2[0]-b,2)+pow(pix2[1]-g,2)+pow(pix2[2]-r,2)))/(Ra*Ra);
+                        mountin=mountin+exp(-(sqrt(pow(pix2[0]-b,2)+pow(pix2[1]-g,2)+pow(pix2[2]-r,2)))/(Ra*Ra));
+
+                    }
+                }
+                pt.push_back(mountin);
+            }
+        }
     }
+
+    for (int a=0; a<NUM_CLUSTERS; a++)
+    {
+        float max=0;
+        int index1=0;
+        int index2=0;
+        for (std::vector<float>::iterator it = pt.begin(); it!=pt.end(); ++it) {
+            if (*it>max)
+            {
+                max=*it;
+                index1=index2;
+            }
+            index2++;
+
+        }
+
+
+
+        cv::Vec3f bufpix;
+        Cluster *cluster = new Cluster(a);
+        index2=0;
+
+        for(int b =0; b<RED; b+=50) {
+            for(int g=0; g<GREEN; g+=50) {
+                for(int r=0; r<BLOO; r+=50) {
+                    if (index2==index1)
+                    {
+                        cv::Vec3f centroid;
+                        centroid[0]=b;
+                        centroid[1]=g;
+                        centroid[2]=r;
+
+                        cluster->setCentroid(centroid);
+                        clusters.push_back(*cluster);
+
+                    }
+                    index2++;
+                }
+            }
+        }
+
+
+        index2=0;
+        //pt.clear();
+        for(int b =0; b<RED; b+=50) {
+            for(int g=0; g<GREEN; g+=50) {
+                for(int r=0; r<BLOO; r+=50) {
+                    float buf;
+                    buf = max*exp(- (sqrt(pow(clusters.back().getCentroid()[0]-b,2)+pow(clusters.back().getCentroid()[1]-g,2)+pow(clusters.back().getCentroid()[2]-r,2)))/(Rb*Rb));
+                    pt[index2]=pt[index2]-buf;
+
+                    index2++;
+
+
+                }
+            }
+        }
+    }
+
+    int iter=0;
 
 
     while (!finish) {
@@ -52,7 +147,7 @@ cv::Mat KMeans::applySegmentation(cv::Mat& image, int k)
         }
         iter++;
 
-        if (exit==k || iter >100) finish = true;
+        if (exit==k || iter >10) finish = true;
 
     }
 
@@ -79,7 +174,8 @@ cv::Mat KMeans::applySegmentation(cv::Mat& image, int k)
          //   this->image.at<cv::Vec3b>(point.getX(),point.getY())[1] = this->image.at<cv::Vec3b>(centroid.getX(),centroid.getY())[0];
          //   this->image.at<cv::Vec3b>(point.getX(),point.getY())[2] = this->image.at<cv::Vec3b>(centroid.getX(),centroid.getY())[0];
         }
-   }
+    }
+    medianBlur(result, result, 7);
 
     return result;
 
