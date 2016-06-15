@@ -1,1 +1,1 @@
-Images (main and image with manual segmentation)
+Images (main and images with manual segmentation)
